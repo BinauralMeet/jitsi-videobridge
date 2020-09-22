@@ -96,6 +96,10 @@ open class MessageHandler {
             is ClientHelloMessage -> clientHello(message)
             is ServerHelloMessage -> serverHello(message)
             is EndpointMessage -> endpointMessage(message)
+
+            //  hasevr
+            is AcceptingEndpointChangedMessage -> acceptingEndpointChanged(message)
+
             is LastNMessage -> lastN(message)
             is ReceiverVideoConstraintMessage -> receiverVideoConstraint(message)
             is ReceiverVideoConstraintsMessage -> receiverVideoConstraints(message)
@@ -122,6 +126,10 @@ open class MessageHandler {
     open fun serverHello(message: ServerHelloMessage) = unhandledMessageReturnNull(message)
     open fun endpointMessage(message: EndpointMessage) = unhandledMessageReturnNull(message)
     open fun lastN(message: LastNMessage) = unhandledMessageReturnNull(message)
+
+    //  hasevr
+    open fun acceptingEndpointChanged(message: AcceptingEndpointChangedMessage) = unhandledMessageReturnNull(message)
+
     open fun receiverVideoConstraint(message: ReceiverVideoConstraintMessage) = unhandledMessageReturnNull(message)
     open fun receiverVideoConstraints(message: ReceiverVideoConstraintsMessage) = unhandledMessageReturnNull(message)
     open fun dominantSpeaker(message: DominantSpeakerMessage) = unhandledMessageReturnNull(message)
@@ -250,6 +258,17 @@ class EndpointMessage(val to: String) : BridgeChannelMessage(TYPE) {
 class LastNMessage(val lastN: Int) : BridgeChannelMessage(TYPE) {
     companion object {
         const val TYPE = "LastNChangedEvent"
+    }
+}
+
+//  hasevr
+/**
+ * A message sent from a client, indicating that it wishes to change its "lastN" (i.e. the maximum number of video
+ * streams to be received).
+ */
+class AcceptingEndpointChangedMessage(val acceptingEndpoint: Int) : BridgeChannelMessage(TYPE) {
+    companion object {
+        const val TYPE = "AcceptingEndpointChangedEvent"
     }
 }
 
