@@ -132,7 +132,7 @@ public class Endpoint
             }
             //  */
 
-            //*  //  log ssrcs 
+            /*  //  log ssrcs 
             logger.info("Perceptibles of " + getID() + "ep=(v:" + Arrays.toString(perceptibles[0]) + " a:" + Arrays.toString(perceptibles[1]) + ")"
                 + " ssrcs=(v:" + Arrays.toString(perceptibleVideoSSRCs.toArray())
                 + " a:" +  Arrays.toString(perceptibleAudioSSRCs.toArray()) + ")");
