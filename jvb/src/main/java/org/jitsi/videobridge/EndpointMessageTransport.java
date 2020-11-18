@@ -524,11 +524,13 @@ class EndpointMessageTransport
 
     //  hasevr
     @Override
-    public BridgeChannelMessage perceptibleEndpointChanged(PerceptibleEndpointChangedMessage message){
+    public BridgeChannelMessage perceived(PercieveMessage message){
+        //  logger.info("EndpointMessageTransport: perceived() called:" + message);
         if (endpoint != null){
-            ArrayList<String> endPoints[] = message.getPerceptibleEndPoints();
-            endpoint.setPerceptibleEndPoints(endPoints);
+            Long ssrcs[][] = message.getPerceptibles();
+            endpoint.setPerceptibles(ssrcs);
         }
+        return null;
     }
 
     /**

@@ -684,7 +684,7 @@ public class BitrateController
         }
 
         //  hasevr
-        destinationEndpoint.updatePerceptibleSSRCs();
+        //  destinationEndpoint.updatePerceptibleSSRCs();
 
         List<AbstractEndpoint> sortedEndpoints
             = new ArrayList<>(sortedEndpointIdsCopy.size());
