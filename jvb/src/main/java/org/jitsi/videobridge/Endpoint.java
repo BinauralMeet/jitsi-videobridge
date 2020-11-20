@@ -564,7 +564,7 @@ public class Endpoint
                 VideoRtpPacket videoRtpPacket = packetInfo.packetAs();
                 long ssrc = videoRtpPacket.getSsrc();
 //                logger.info("videoRtpPacket.getSsrc() = " + ssrc + "\n");
-                return acceptVideo && (/*perceptibles == null ||*/ perceptibleVideoSSRCs.contains(ssrc)) && bitrateController.accept(packetInfo);
+                return acceptVideo && (perceptibles == null || perceptibleVideoSSRCs.contains(ssrc)) && bitrateController.accept(packetInfo);
 //                return acceptVideo && bitrateController.accept(packetInfo);
 }
             if (packet instanceof AudioRtpPacket)
@@ -572,7 +572,7 @@ public class Endpoint
                 AudioRtpPacket audioRtpPacket = packetInfo.packetAs();
                 long ssrc = audioRtpPacket.getSsrc();
 //                logger.info("audioRtpPacket.getSsrc() = " + ssrc + "\n");
-                return acceptAudio && (/*perceptibles == null ||*/ perceptibleAudioSSRCs.contains(ssrc));
+                return acceptAudio && (perceptibles == null || perceptibleAudioSSRCs.contains(ssrc));
 //                return acceptAudio;
             }
         }
