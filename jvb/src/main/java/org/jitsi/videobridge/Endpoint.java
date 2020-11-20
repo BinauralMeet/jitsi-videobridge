@@ -63,7 +63,6 @@ import java.util.function.Function;
 import java.util.function.*;
 import java.util.stream.*;
 
-
 /**
  * Represents an endpoint of a participant in a <tt>Conference</tt>.
  *
@@ -104,7 +103,7 @@ public class Endpoint
             }
 
             //  log ssrcs 
-            logger.info("Perceptibles of " + getID() + "ep=(v:" + Arrays.toString(perceptibles[0]) + " a:" + Arrays.toString(perceptibles[1]) + ")"
+            logger.info("Perceptibles of " + getId() + "ep=(v:" + Arrays.toString(perceptibles[0]) + " a:" + Arrays.toString(perceptibles[1]) + ")"
                 + " ssrcs=(v:" + Arrays.toString(perceptibleVideoSSRCs.toArray())
                 + " a:" +  Arrays.toString(perceptibleAudioSSRCs.toArray()) + ")");
         }
@@ -179,7 +178,7 @@ public class Endpoint
     /**
      * TODO Brian
      */
-    private final DataChannelHandler dataChannelHandler = new DataChannelHandler(this);
+    private final DataChannelHandler dataChannelHandler = new DataChannelHandler();
 
     /**
      * The instance which manages the Colibri messaging (over a data channel
@@ -508,7 +507,7 @@ public class Endpoint
         perceptibleVideoSSRCs.addAll(Arrays.asList(ssrcs[0]));
         perceptibleAudioSSRCs.clear();
         perceptibleAudioSSRCs.addAll(Arrays.asList(ssrcs[1]));
-        logger.info("setPerceptible called on ep:" + getID() + " [" + Arrays.toString(ssrcs[0]) + "," + Arrays.toString(ssrcs[1]) + "]" );
+        logger.info("setPerceptible called on ep:" + this.getId() + " [" + Arrays.toString(ssrcs[0]) + "," + Arrays.toString(ssrcs[1]) + "]" );
         logger.info("allEndpoints: " + Arrays.toString(this.getConference().getEndpoints().toArray()));
     }
 
@@ -884,7 +883,7 @@ public class Endpoint
      */
     public void createSctpConnection()
     {
-        logger.info("Creating SCTP mananger" + this.getID());
+        logger.debug(() -> "Creating SCTP mananger");
         // Create the SctpManager and provide it a method for sending SCTP data
         this.sctpManager = new SctpManager(
             (data, offset, length) -> {
@@ -897,27 +896,26 @@ public class Endpoint
         // NOTE(brian): as far as I know we always act as the 'server' for sctp
         // connections, but if not we can make which type we use dynamic
         SctpServerSocket socket = sctpManager.createServerSocket();
-        Endpoint endpoint = this;
         socket.eventHandler = new SctpSocket.SctpSocketEventHandler()
         {
             @Override
             public void onReady()
             {
-                logger.info("SCTP connection is ready, creating the Data channel stack" + endpoint.getID());
+                logger.info("SCTP connection is ready, creating the Data channel stack");
                 dataChannelStack
                     = new DataChannelStack(
                         (data, sid, ppid) -> socket.send(data, true, sid, ppid),
-                        logger, endpoint
+                        logger
                     );
                 dataChannelStack.onDataChannelStackEvents(dataChannel ->
                 {
-                    logger.info("Remote side opened a data channel." + endpoint.getID());
+                    logger.info("Remote side opened a data channel.");
                     Endpoint.this.messageTransport.setDataChannel(dataChannel);
                 });
                 dataChannelHandler.setDataChannelStack(dataChannelStack);
                 if (OPEN_DATA_LOCALLY)
                 {
-                    logger.info("Will open the data channel." + endpoint.getID());
+                    logger.info("Will open the data channel.");
                     DataChannel dataChannel
                         = dataChannelStack.createDataChannel(
                             DataChannelProtocolConstants.RELIABLE,
@@ -930,14 +928,14 @@ public class Endpoint
                 }
                 else
                 {
-                    logger.info("Will wait for the remote side to open the data channel." + endpoint.getID());
+                    logger.info("Will wait for the remote side to open the data channel.");
                 }
             }
 
             @Override
             public void onDisconnected()
             {
-                logger.info("SCTP connection is disconnected." + endpoint.getID());
+                logger.info("SCTP connection is disconnected.");
             }
         };
         socket.dataCallback = (data, sid, ssn, tsn, ppid, context, flags) -> {
@@ -975,7 +973,7 @@ public class Endpoint
                     break;
                 }
 
-                if (attempts > 1000)
+                if (attempts > 100)
                 {
                     logger.error("Timed out waiting for SCTP connection from remote side");
                     break;
@@ -1507,17 +1505,15 @@ public class Endpoint
     private static class DataChannelHandler extends ConsumerNode
     {
         private final Object dataChannelStackLock = new Object();
-        private final Endpoint endpoint;
         public DataChannelStack dataChannelStack = null;
         public BlockingQueue<PacketInfo> cachedDataChannelPackets = new LinkedBlockingQueue<>();
 
         /**
          * Initializes a new {@link DataChannelHandler} instance.
          */
-        public DataChannelHandler(Endpoint ep)
+        public DataChannelHandler()
         {
             super("Data channel handler");
-            endpoint = ep;
         }
 
         /**
@@ -1533,7 +1529,6 @@ public class Endpoint
                     if (dataChannelStack == null)
                     {
                         cachedDataChannelPackets.add(packetInfo);
-                        endpoint.logger.info("DataChannelPacket cashed for " + endpoint.getID());
                     }
                     else
                     {
