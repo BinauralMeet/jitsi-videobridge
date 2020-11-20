@@ -24,6 +24,9 @@ import org.jitsi.config.JitsiConfig
 import org.jitsi.metaconfig.MetaconfigLogger
 import org.jitsi.metaconfig.MetaconfigSettings
 import org.jitsi.rest.JettyBundleActivatorConfig
+import org.jitsi.rest.createServer
+import org.jitsi.rest.isEnabled
+import org.jitsi.rest.servletContextHandler
 import org.jitsi.shutdown.ShutdownServiceImpl
 import org.jitsi.stats.media.Utils
 import org.jitsi.utils.logging2.LoggerImpl
@@ -75,7 +78,7 @@ fun main(args: Array<String>) {
     val shutdownService = ShutdownServiceImpl()
     val videobridge = Videobridge(xmppConnection, shutdownService).apply { start() }
     val octoRelayService = octoRelayService().get()?.apply { start() }
-    val statsManager = if (StatsCollector.config.enabled) {
+    val statsCollector = if (StatsCollector.config.enabled) {
         StatsCollector(VideobridgeStatistics(videobridge, octoRelayService, xmppConnection)).apply {
             start()
             addTransport(MucStatsTransport(xmppConnection), xmppConnection.config.presenceInterval.toMillis())
@@ -89,9 +92,11 @@ fun main(args: Array<String>) {
         CallstatsService(videobridge.versionService.currentVersion).apply {
             start {
                 statsTransport?.let { statsTransport ->
-                    statsManager?.addTransport(statsTransport, CallstatsService.config.interval.toMillis())
-                        ?: logger.warn("Callstats is enabled, but the stats manager is not. Will not publish" +
-                            " per-conference stats.")
+                    statsCollector?.addTransport(statsTransport, CallstatsService.config.interval.toMillis())
+                        ?: logger.warn(
+                            "Callstats is enabled, but the stats manager is not. Will not publish" +
+                                " per-conference stats."
+                        )
                 } ?: throw IllegalStateException("Stats transport is null after the service is started")
 
                 videobridge.addEventHandler(videobridgeEventHandler)
@@ -126,7 +131,7 @@ fun main(args: Array<String>) {
     )
     val privateHttpServer = if (privateServerConfig.isEnabled()) {
         logger.info("Starting private http server")
-        val restApp = Application(videobridge, xmppConnection, statsManager)
+        val restApp = Application(videobridge, xmppConnection, statsCollector)
         createServer(privateServerConfig).also {
             it.servletContextHandler.addServlet(
                 ServletHolder(ServletContainer(restApp)),
@@ -148,11 +153,11 @@ fun main(args: Array<String>) {
     callstats?.let {
         videobridge.removeEventHandler(it.videobridgeEventHandler)
         it.statsTransport?.let { statsTransport ->
-            statsManager?.removeTransport(statsTransport)
+            statsCollector?.removeTransport(statsTransport)
         }
         it.stop()
     }
-    statsManager?.stop()
+    statsCollector?.stop()
 
     try {
         publicHttpServer?.stop()
