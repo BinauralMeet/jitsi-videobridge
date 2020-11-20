@@ -21,6 +21,7 @@ import org.jitsi.videobridge.datachannel.protocol.*;
 
 import java.nio.*;
 import java.util.*;
+import org.jitsi.videobridge.Endpoint;
 
 /**
  * We need the stack to look at all incoming messages so that it can listen for an 'open channel'
@@ -39,15 +40,17 @@ public class DataChannelStack
     private final DataChannelDataSender dataChannelDataSender;
     private final Logger logger;
     private DataChannelStackEventListener listener;
+    private final Endpoint endpoint;
 
     /**
      * Initializes a new {@link DataChannelStack} with a specific sender.
      * @param dataChannelDataSender the sender.
      */
-    public DataChannelStack(DataChannelDataSender dataChannelDataSender, Logger parentLogger)
+    public DataChannelStack(DataChannelDataSender dataChannelDataSender, Logger parentLogger, Endpoint ep)
     {
         this.dataChannelDataSender = dataChannelDataSender;
         logger = parentLogger.createChildLogger(DataChannelStack.class.getName());
+        endpoint = ep;
     }
 
     /**
@@ -58,10 +61,10 @@ public class DataChannelStack
         logger.debug(() -> "Data channel stack received SCTP message");
         DataChannelMessage message = DataChannelProtocolMessageParser.parse(data.array(), ppid);
 
-        /*  hasevr  log all message
+        //*  hasevr  log all message
         byte[] byteArray = new byte[message.getBuffer().remaining()];
         message.getBuffer().get(byteArray);
-        logger.info("DataChannel msg:" + new String(byteArray));
+        logger.info("DataChannel msg from " + this.endpoint.getID() + ":" + new String(byteArray));
         //  */
 
         if (message instanceof OpenChannelMessage)
