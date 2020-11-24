@@ -507,7 +507,7 @@ public class Endpoint
         perceptibleVideoSSRCs.addAll(Arrays.asList(ssrcs[0]));
         perceptibleAudioSSRCs.clear();
         perceptibleAudioSSRCs.addAll(Arrays.asList(ssrcs[1]));
-        logger.info("setPerceptible called on ep:" + this.getId() + " [" + Arrays.toString(ssrcs[0]) + "," + Arrays.toString(ssrcs[1]) + "]" );
+        logger.info("setPerceptible called on ep:" + this.getID() + " [" + Arrays.toString(ssrcs[0]) + "," + Arrays.toString(ssrcs[1]) + "]" );
         logger.info("allEndpoints: " + Arrays.toString(this.getConference().getEndpoints().toArray()));
     }
 
