@@ -76,6 +76,41 @@ public class Endpoint
     extends AbstractEndpoint implements PotentialPacketHandler,
         EncodingsManager.EncodingsUpdateListener
 {
+    //  hasevr
+    public Long perceptibles[][] = null;
+    public Set<Long> perceptibleAudioSSRCs = ConcurrentHashMap.newKeySet();
+    public Set<Long> perceptibleVideoSSRCs = ConcurrentHashMap.newKeySet();
+    
+    //  11.18 This does not work with Octo.
+    /*
+    //  update SSRCs from Endpoints
+    public void updatePerceptibleSSRCs(){        
+        if (perceptibles != null){
+            perceptibleVideoSSRCs = ConcurrentHashMap.newKeySet();
+            perceptibleAudioSSRCs = ConcurrentHashMap.newKeySet();
+
+            Set<Long> perceptibleSSRCs[] = (Set<Long>[]) new Set[2];
+            perceptibleSSRCs[0] = perceptibleVideoSSRCs;
+            perceptibleSSRCs[1] = perceptibleAudioSSRCs;
+
+            for(int i=0; i<2; ++i){
+                for(String id : perceptibles[i]){
+                    Endpoint srcEndpoint = (Endpoint)(getConference().getEndpoint(id));
+                    if (srcEndpoint != null){
+                        Set<Long> ssrcs = srcEndpoint.transceiver.receiveSsrcsByMediaType().get(i==0 ? MediaType.VIDEO: MediaType.AUDIO);
+                        perceptibleSSRCs[i].addAll(ssrcs);
+                    }
+                }
+            }
+
+            //  log ssrcs 
+            logger.info("Perceptibles of " + getId() + "ep=(v:" + Arrays.toString(perceptibles[0]) + " a:" + Arrays.toString(perceptibles[1]) + ")"
+                + " ssrcs=(v:" + Arrays.toString(perceptibleVideoSSRCs.toArray())
+                + " a:" +  Arrays.toString(perceptibleAudioSSRCs.toArray()) + ")");
+        }
+    }
+    */
+
     /**
      * Track how long it takes for all RTP and RTCP packets to make their way through the bridge.
      * Since {@link Endpoint} is the 'last place' that is aware of {@link PacketInfo} in the outgoing
@@ -502,6 +537,17 @@ public class Endpoint
         bitrateController.setLastN(lastN);
     }
 
+    //  hasevr
+    public void setPerceptibles(Long ssrcs[][]){
+        perceptibles = ssrcs;
+        perceptibleVideoSSRCs.clear();
+        perceptibleVideoSSRCs.addAll(Arrays.asList(ssrcs[0]));
+        perceptibleAudioSSRCs.clear();
+        perceptibleAudioSSRCs.addAll(Arrays.asList(ssrcs[1]));
+        logger.info("setPerceptible called on ep:" + this.getID() + " [" + Arrays.toString(ssrcs[0]) + "," + Arrays.toString(ssrcs[1]) + "]" );
+        logger.info("allEndpoints: " + Arrays.toString(this.getConference().getEndpoints().toArray()));
+    }
+
     /**
      * Gets the LastN value for this endpoint.
      */
@@ -549,13 +595,22 @@ public class Endpoint
 
         if (packet instanceof RtpPacket)
         {
+            //  hasevr
             if (packet instanceof VideoRtpPacket)
             {
-                return acceptVideo && bitrateController.accept(packetInfo);
-            }
+                VideoRtpPacket videoRtpPacket = packetInfo.packetAs();
+                long ssrc = videoRtpPacket.getSsrc();
+//                logger.info("videoRtpPacket.getSsrc() = " + ssrc + "\n");
+                return acceptVideo && (perceptibles == null || perceptibleVideoSSRCs.contains(ssrc)) && bitrateController.accept(packetInfo);
+//                return acceptVideo && bitrateController.accept(packetInfo);
+}
             if (packet instanceof AudioRtpPacket)
             {
-                return acceptAudio;
+                AudioRtpPacket audioRtpPacket = packetInfo.packetAs();
+                long ssrc = audioRtpPacket.getSsrc();
+//                logger.info("audioRtpPacket.getSsrc() = " + ssrc + "\n");
+                return acceptAudio && (perceptibles == null || perceptibleAudioSSRCs.contains(ssrc));
+//                return acceptAudio;
             }
         }
         else if (packet instanceof RtcpPacket)

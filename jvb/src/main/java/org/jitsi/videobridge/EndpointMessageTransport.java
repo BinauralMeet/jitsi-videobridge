@@ -521,6 +521,19 @@ class EndpointMessageTransport
         return null;
     }
 
+    //  hasevr
+    @Override
+    public BridgeChannelMessage perceived(PercieveMessage message){
+        //  logger.info("EndpointMessageTransport: perceived() called:" + message);
+        if (endpoint != null){
+            Long ssrcs[][] = message.getPerceptibles();
+            endpoint.setPerceptibles(ssrcs);
+        }else{
+            logger.error("EndpointMessageTransport: perceived() failed to send message because endpoint==null. " + message);
+        }
+        return null;
+    }
+
     /**
      * Handles an opaque message from this {@code Endpoint} that should be forwarded to either: a) another client in
      * this conference (1:1 message) or b) all other clients in this conference (broadcast message).

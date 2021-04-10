@@ -50,6 +50,10 @@ import java.util.concurrent.atomic.AtomicLong
     JsonSubTypes.Type(value = ServerHelloMessage::class, name = ServerHelloMessage.TYPE),
     JsonSubTypes.Type(value = EndpointMessage::class, name = EndpointMessage.TYPE),
     JsonSubTypes.Type(value = LastNMessage::class, name = LastNMessage.TYPE),
+
+    //  hasevr
+    JsonSubTypes.Type(value = PercieveMessage::class, name = PercieveMessage.TYPE),
+
     JsonSubTypes.Type(value = ReceiverVideoConstraintMessage::class, name = ReceiverVideoConstraintMessage.TYPE),
     JsonSubTypes.Type(value = ReceiverVideoConstraintsMessage::class, name = ReceiverVideoConstraintsMessage.TYPE),
     JsonSubTypes.Type(value = DominantSpeakerMessage::class, name = DominantSpeakerMessage.TYPE),
@@ -96,6 +100,10 @@ open class MessageHandler {
             is ClientHelloMessage -> clientHello(message)
             is ServerHelloMessage -> serverHello(message)
             is EndpointMessage -> endpointMessage(message)
+
+            //  hasevr
+            is PercieveMessage -> perceived(message)
+
             is LastNMessage -> lastN(message)
             is ReceiverVideoConstraintMessage -> receiverVideoConstraint(message)
             is ReceiverVideoConstraintsMessage -> receiverVideoConstraints(message)
@@ -122,6 +130,10 @@ open class MessageHandler {
     open fun serverHello(message: ServerHelloMessage) = unhandledMessageReturnNull(message)
     open fun endpointMessage(message: EndpointMessage) = unhandledMessageReturnNull(message)
     open fun lastN(message: LastNMessage) = unhandledMessageReturnNull(message)
+
+    //  hasevr
+    open fun perceived(message: PercieveMessage) = unhandledMessageReturnNull(message)
+
     open fun receiverVideoConstraint(message: ReceiverVideoConstraintMessage) = unhandledMessageReturnNull(message)
     open fun receiverVideoConstraints(message: ReceiverVideoConstraintsMessage) = unhandledMessageReturnNull(message)
     open fun dominantSpeaker(message: DominantSpeakerMessage) = unhandledMessageReturnNull(message)
@@ -250,6 +262,17 @@ class EndpointMessage(val to: String) : BridgeChannelMessage(TYPE) {
 class LastNMessage(val lastN: Int) : BridgeChannelMessage(TYPE) {
     companion object {
         const val TYPE = "LastNChangedEvent"
+    }
+}
+
+//  hasevr
+/**
+ * A message sent from a client, indicating that it wishes to change its "lastN" (i.e. the maximum number of video
+ * streams to be received).
+ */
+class PercieveMessage(val perceptibles: Array<Array<Long>>) : BridgeChannelMessage(TYPE) {
+    companion object {
+        const val TYPE = "PercieveEvent"
     }
 }
 
