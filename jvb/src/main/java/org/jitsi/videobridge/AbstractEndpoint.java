@@ -22,11 +22,11 @@ import org.jitsi.nlj.format.*;
 import org.jitsi.nlj.rtp.*;
 import org.jitsi.nlj.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.event.*;
 import org.jitsi.utils.logging2.*;
 import org.jitsi.videobridge.cc.allocation.*;
 import org.jitsi.videobridge.message.*;
 import org.jitsi.videobridge.rest.root.debug.*;
-import org.jitsi.videobridge.util.*;
 import org.jitsi.xmpp.extensions.colibri.*;
 import org.json.simple.*;
 
@@ -363,14 +363,6 @@ public abstract class AbstractEndpoint
             maxReceiverVideoConstraintsChanged(newReceiverMaxVideoConstraints);
         }
     }
-
-    /**
-     * Enables/disables the given feature, if the endpoint implementation supports it.
-     *
-     * @param feature the feature to enable or disable.
-     * @param enabled the state of the feature.
-     */
-    public abstract void setFeature(EndpointDebugFeatures feature, boolean enabled);
 
     /**
      * Whether the remote endpoint is currently sending (non-silence) audio.

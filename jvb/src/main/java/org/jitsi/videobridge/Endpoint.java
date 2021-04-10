@@ -745,12 +745,19 @@ public class Endpoint
     protected void maxReceiverVideoConstraintsChanged(@NotNull VideoConstraints maxVideoConstraints)
     {
         // Note that it's up to the client to respect these constraints.
-        SenderVideoConstraintsMessage senderVideoConstraintsMessage
-                = new SenderVideoConstraintsMessage(maxVideoConstraints);
+        if (ArrayUtils.isNullOrEmpty(getMediaSources()))
+        {
+            logger.debug("Suppressing sending a SenderVideoConstraints message, endpoint has no streams.");
+        }
+        else
+        {
+            SenderVideoConstraintsMessage senderVideoConstraintsMessage
+                    = new SenderVideoConstraintsMessage(maxVideoConstraints);
 
-        logger.debug(() -> "Sender constraints changed: " + senderVideoConstraintsMessage.toJson());
+            logger.debug(() -> "Sender constraints changed: " + senderVideoConstraintsMessage.toJson());
 
-        sendMessage(senderVideoConstraintsMessage);
+            sendMessage(senderVideoConstraintsMessage);
+        }
     }
 
     /**
@@ -1464,9 +1471,11 @@ public class Endpoint
     }
 
     /**
-     * {@inheritDoc}
+     * Enables/disables the given feature, if the endpoint implementation supports it.
+     *
+     * @param feature the feature to enable or disable.
+     * @param enabled the state of the feature.
      */
-    @Override
     public void setFeature(EndpointDebugFeatures feature, boolean enabled) {
 
         switch (feature)
@@ -1475,6 +1484,17 @@ public class Endpoint
                 transceiver.setFeature(Features.TRANSCEIVER_PCAP_DUMP, enabled);
                 break;
         }
+    }
+
+    public boolean isFeatureEnabled(EndpointDebugFeatures feature)
+    {
+        switch (feature)
+        {
+            case PCAP_DUMP:
+                return transceiver.isFeatureEnabled(Features.TRANSCEIVER_PCAP_DUMP);
+        }
+
+        throw new RuntimeException("Unsupported feature");
     }
 
     @Override

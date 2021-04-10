@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.*;
 import java.util.function.*;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.jitsi.videobridge.EndpointMessageTransportConfig.config;
 
 /**
  * Handles the functionality related to sending and receiving COLIBRI messages
@@ -126,7 +127,7 @@ class EndpointMessageTransport
         // remote endpoint and the Videobridge is operational.
         // We take care to send the reply using the same transport channel on
         // which we received the request..
-        return new ServerHelloMessage();
+        return createServerHello();
     }
 
     @Override
@@ -286,10 +287,22 @@ class EndpointMessageTransport
 
             webSocket = ws;
             webSocketLastActive = true;
-            sendMessage(ws, new ServerHelloMessage());
+            sendMessage(ws, createServerHello());
         }
 
         notifyTransportChannelConnected();
+    }
+
+    private ServerHelloMessage createServerHello()
+    {
+        if (config.announceVersion())
+        {
+            return new ServerHelloMessage(endpoint.getConference().getVideobridge().getVersion().toString());
+        }
+        else
+        {
+            return new ServerHelloMessage();
+        }
     }
 
     /**

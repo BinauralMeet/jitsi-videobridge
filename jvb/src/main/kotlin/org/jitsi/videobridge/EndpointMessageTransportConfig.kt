@@ -1,5 +1,5 @@
 /*
- * Copyright @ 2018 - present 8x8, Inc.
+ * Copyright @ 2020 - present 8x8, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package org.jitsi.videobridge.util
+package org.jitsi.videobridge
 
-import java.util.concurrent.CopyOnWriteArrayList
+import org.jitsi.config.JitsiConfig.Companion.newConfig
+import org.jitsi.metaconfig.config
+import org.jitsi.metaconfig.from
 
-class EventEmitter<EventHandlerType> {
-    private val eventHandlers: MutableList<EventHandlerType> = CopyOnWriteArrayList()
+class EndpointMessageTransportConfig {
+    val announceVersion: Boolean by config("videobridge.version.announce".from(newConfig))
+    fun announceVersion() = announceVersion
 
-    fun fireEvent(event: EventHandlerType.() -> Unit) {
-        eventHandlers.forEach { it.apply(event) }
-    }
-
-    fun addHandler(handler: EventHandlerType) {
-        eventHandlers += handler
-    }
-
-    fun removeHandler(handler: EventHandlerType) {
-        eventHandlers -= handler
+    companion object {
+        @JvmField
+        val config = EndpointMessageTransportConfig()
     }
 }
