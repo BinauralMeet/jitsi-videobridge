@@ -111,12 +111,6 @@ public class Videobridge
     private final VideobridgeExpireThread videobridgeExpireThread;
 
     /**
-     * The shim which handles Colibri-related logic for this
-     * {@link Videobridge}.
-     */
-    private final VideobridgeShim shim = new VideobridgeShim(this);
-
-    /**
      * The {@link JvbLoadManager} instance used for this bridge.
      */
     private final JvbLoadManager<PacketRateMeasurement> jvbLoadManager;
@@ -194,7 +188,7 @@ public class Videobridge
      * @param gid
      * @return
      */
-    private @NotNull Conference doCreateConference(EntityBareJid name, long gid)
+    private @NotNull Conference doCreateConference(EntityBareJid name, long gid, String meetingId)
     {
         Conference conference = null;
         do
@@ -205,7 +199,7 @@ public class Videobridge
             {
                 if (!conferencesById.containsKey(id))
                 {
-                    conference = new Conference(this, id, name, gid);
+                    conference = new Conference(this, id, name, gid, meetingId);
                     conferencesById.put(id, conference);
                 }
             }
@@ -226,7 +220,7 @@ public class Videobridge
      */
     public @NotNull Conference createConference(EntityBareJid name)
     {
-        return createConference(name, Conference.GID_NOT_SET);
+        return createConference(name, Conference.GID_NOT_SET, null);
     }
 
     /**
@@ -241,13 +235,13 @@ public class Videobridge
      * @return a new <tt>Conference</tt> instance with an ID unique to the
      * <tt>Conference</tt> instances listed by this <tt>Videobridge</tt>
      */
-    public @NotNull Conference createConference(EntityBareJid name, long gid)
+    public @NotNull Conference createConference(EntityBareJid name, long gid, String meetingId)
     {
-        final Conference conference = doCreateConference(name, gid);
+        final Conference conference = doCreateConference(name, gid, meetingId);
 
         logger.info(() -> "create_conf, id=" + conference.getID() + " gid=" + conference.getGid());
 
-        eventEmitter.fireEvent(handler ->
+        eventEmitter.fireEventSync(handler ->
         {
             handler.conferenceCreated(conference);
             return Unit.INSTANCE;
@@ -289,7 +283,7 @@ public class Videobridge
             {
                 conferencesById.remove(id);
                 conference.expire();
-                eventEmitter.fireEvent(handler ->
+                eventEmitter.fireEventSync(handler ->
                 {
                     handler.conferenceExpired(conference);
                     return Unit.INSTANCE;
@@ -350,17 +344,87 @@ public class Videobridge
     }
 
     /**
-     * Handles a <tt>ColibriConferenceIQ</tt> stanza which represents a request.
-     *
-     * @param conferenceIQ the <tt>ColibriConferenceIQ</tt> stanza represents
-     * the request to handle
-     * @return an <tt>org.jivesoftware.smack.packet.IQ</tt> stanza which
-     * represents the response to the specified request or <tt>null</tt> to
-     * reply with <tt>feature-not-implemented</tt>
+     * Handles a COLIBRI request synchronously.
+     * @param conferenceIq The COLIBRI request.
+     * @return The response in the form of an {@link IQ}. It is either an error or a {@link ColibriConferenceIQ}.
      */
-    public IQ handleColibriConferenceIQ(ColibriConferenceIQ conferenceIQ)
+    public IQ handleColibriConferenceIQ(ColibriConferenceIQ conferenceIq)
     {
-        return shim.handleColibriConferenceIQ(conferenceIQ);
+        Conference conference;
+        try
+        {
+            conference = getOrCreateConference(conferenceIq);
+        }
+        catch (ConferenceNotFoundException e)
+        {
+            return IQUtils.createError(
+                    conferenceIq,
+                    XMPPError.Condition.bad_request,
+                    "Conference not found for ID: " + conferenceIq.getID());
+        }
+        catch (InGracefulShutdownException e)
+        {
+            return ColibriConferenceIQ.createGracefulShutdownErrorResponse(conferenceIq);
+        }
+
+        return conference.getShim().handleColibriConferenceIQ(conferenceIq);
+    }
+
+    /**
+     * Handles a COLIBRI request asynchronously.
+     */
+    private void handleColibriRequest(XmppConnection.ColibriRequest request)
+    {
+        ColibriConferenceIQ conferenceIq = request.getRequest();
+        Conference conference;
+        try
+        {
+            conference = getOrCreateConference(conferenceIq);
+        }
+        catch (ConferenceNotFoundException e)
+        {
+            request.getCallback().invoke(
+                    IQUtils.createError(
+                            conferenceIq,
+                            XMPPError.Condition.bad_request,
+                            "Conference not found for ID: " + conferenceIq.getID()));
+            return;
+        }
+        catch (InGracefulShutdownException e)
+        {
+            request.getCallback().invoke(ColibriConferenceIQ.createGracefulShutdownErrorResponse(conferenceIq));
+            return;
+        }
+
+        // It is now the responsibility of Conference to send a response.
+        conference.getShim().enqueueColibriRequest(request);
+    }
+
+    private @NotNull Conference getOrCreateConference(ColibriConferenceIQ conferenceIq)
+            throws ConferenceNotFoundException, InGracefulShutdownException
+    {
+        String conferenceId = conferenceIq.getID();
+        if (conferenceId == null && isShutdownInProgress())
+        {
+            throw new InGracefulShutdownException();
+        }
+
+        if (conferenceId == null)
+        {
+            return createConference(
+                    conferenceIq.getName(),
+                    ColibriUtil.parseGid(conferenceIq.getGID()),
+                    conferenceIq.getMeetingId());
+        }
+        else
+        {
+            Conference conference = getConference(conferenceId);
+            if (conference == null)
+            {
+                throw new ConferenceNotFoundException();
+            }
+            return conference;
+        }
     }
 
     /**
@@ -622,9 +686,9 @@ public class Videobridge
     {
         @NotNull
         @Override
-        public IQ colibriConferenceIqReceived(@NotNull ColibriConferenceIQ iq)
+        public void colibriConferenceIqReceived(@NotNull XmppConnection.ColibriRequest request)
         {
-            return handleColibriConferenceIQ(iq);
+            handleColibriRequest(request);
         }
 
         @NotNull
@@ -653,8 +717,6 @@ public class Videobridge
         {
             return handleHealthCheckIQ(iq);
         }
-
-
     }
 
     /**
@@ -741,25 +803,25 @@ public class Videobridge
 
         /**
          * The total number of messages received from the data channels of
-         * the {@link Endpoint}s of this conference.
+         * the endpoints of this conference.
          */
         public AtomicLong totalDataChannelMessagesReceived = new AtomicLong();
 
         /**
          * The total number of messages sent via the data channels of the
-         * {@link Endpoint}s of this conference.
+         * endpoints of this conference.
          */
         public AtomicLong totalDataChannelMessagesSent = new AtomicLong();
 
         /**
          * The total number of messages received from the data channels of
-         * the {@link Endpoint}s of this conference.
+         * the endpoints of this conference.
          */
         public AtomicLong totalColibriWebSocketMessagesReceived = new AtomicLong();
 
         /**
          * The total number of messages sent via the data channels of the
-         * {@link Endpoint}s of this conference.
+         * endpoints of this conference.
          */
         public AtomicLong totalColibriWebSocketMessagesSent = new AtomicLong();
 
@@ -824,4 +886,6 @@ public class Videobridge
         void conferenceCreated(@NotNull Conference conference);
         void conferenceExpired(@NotNull Conference conference);
     }
+    private static class ConferenceNotFoundException extends Exception {}
+    private static class InGracefulShutdownException extends Exception {}
 }

@@ -42,6 +42,8 @@ import org.jitsi.videobridge.util.TaskPools
 import org.jitsi.videobridge.version.JvbVersionService
 import org.jitsi.videobridge.websocket.ColibriWebSocketService
 import org.jitsi.videobridge.xmpp.XmppConnection
+import org.jitsi.videobridge.xmpp.config.XmppClientConnectionConfig
+import org.jxmpp.stringprep.XmppStringPrepUtil
 import kotlin.concurrent.thread
 import org.jitsi.videobridge.octo.singleton as octoRelayService
 import org.jitsi.videobridge.websocket.singleton as webSocketServiceSingleton
@@ -76,31 +78,24 @@ fun main(args: Array<String>) {
 
     startIce4j()
 
+    XmppStringPrepUtil.setMaxCacheSizes(XmppClientConnectionConfig.jidCacheSize)
+
     val xmppConnection = XmppConnection().apply { start() }
     val shutdownService = ShutdownServiceImpl()
     val versionService = JvbVersionService()
     val videobridge = Videobridge(xmppConnection, shutdownService, versionService.currentVersion).apply { start() }
     val healthChecker = JvbHealthChecker().apply { start() }
     val octoRelayService = octoRelayService().get()?.apply { start() }
-    val statsCollector = if (StatsCollector.config.enabled) {
-        StatsCollector(VideobridgeStatistics(videobridge, octoRelayService, xmppConnection)).apply {
-            start()
-            addTransport(MucStatsTransport(xmppConnection), xmppConnection.config.presenceInterval.toMillis())
-        }
-    } else {
-        logger.warn("Statistics are not enabled, publishing updated presence will not work.")
-        null
+    val statsCollector = StatsCollector(VideobridgeStatistics(videobridge, octoRelayService, xmppConnection)).apply {
+        start()
+        addTransport(MucStatsTransport(xmppConnection), xmppConnection.config.presenceInterval.toMillis())
     }
 
     val callstats = if (CallstatsService.config.enabled) {
         CallstatsService(videobridge.version).apply {
             start {
                 statsTransport?.let { statsTransport ->
-                    statsCollector?.addTransport(statsTransport, CallstatsService.config.interval.toMillis())
-                        ?: logger.warn(
-                            "Callstats is enabled, but the stats manager is not. Will not publish" +
-                                " per-conference stats."
-                        )
+                    statsCollector.addTransport(statsTransport, CallstatsService.config.interval.toMillis())
                 } ?: throw IllegalStateException("Stats transport is null after the service is started")
 
                 videobridge.addEventHandler(videobridgeEventHandler)
@@ -135,7 +130,13 @@ fun main(args: Array<String>) {
     )
     val privateHttpServer = if (privateServerConfig.isEnabled()) {
         logger.info("Starting private http server")
-        val restApp = Application(videobridge, xmppConnection, statsCollector, versionService, healthChecker)
+        val restApp = Application(
+            videobridge,
+            xmppConnection,
+            statsCollector,
+            versionService.currentVersion,
+            healthChecker
+        )
         createServer(privateServerConfig).also {
             it.servletContextHandler.addServlet(
                 ServletHolder(ServletContainer(restApp)),
@@ -159,11 +160,11 @@ fun main(args: Array<String>) {
     callstats?.let {
         videobridge.removeEventHandler(it.videobridgeEventHandler)
         it.statsTransport?.let { statsTransport ->
-            statsCollector?.removeTransport(statsTransport)
+            statsCollector.removeTransport(statsTransport)
         }
         it.stop()
     }
-    statsCollector?.stop()
+    statsCollector.stop()
 
     try {
         publicHttpServer?.stop()
@@ -226,10 +227,4 @@ private fun startIce4j() {
 private fun stopIce4j() {
     // Shut down harvesters.
     Harvesters.closeStaticConfiguration()
-
-    System.getProperties().keys.forEach { key ->
-        if (key.toString().startsWith("org.ice4j")) {
-            System.clearProperty(key.toString())
-        }
-    }
 }

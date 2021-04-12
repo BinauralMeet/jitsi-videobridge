@@ -25,6 +25,7 @@ import org.jitsi.utils.collections.*;
 import org.jitsi.utils.logging.*;
 import org.jitsi.utils.logging2.Logger;
 import org.jitsi.videobridge.cc.vp8.*;
+import org.jitsi.videobridge.cc.vp9.*;
 import org.json.simple.*;
 
 import java.lang.*;
@@ -93,11 +94,6 @@ public class AdaptiveSourceProjection
     private int contextPayloadType = -1;
 
     /**
-     * The ideal quality index for this source projection.
-     */
-    private int idealIndex = RtpLayerDesc.SUSPENDED_INDEX;
-
-    /**
      * The target quality index for this source projection.
      */
     private int targetIndex = RtpLayerDesc.SUSPENDED_INDEX;
@@ -132,49 +128,11 @@ public class AdaptiveSourceProjection
     }
 
     /**
-     * @return the ideal quality for this source projection.
-     */
-    public int getIdealIndex()
-    {
-        return idealIndex;
-    }
-
-    /**
-     * Update the ideal quality for this source projection.
-     *
-     * @param value the ideal quality for this source projection.
-     * @return {@code true} if the value was changed as a result of this call.
-     */
-    public boolean setIdealIndex(int value)
-    {
-        boolean changed = idealIndex != value;
-        idealIndex = value;
-
-        return changed;
-    }
-
-    /**
-     * Gets the target index value for this source projection.
-     *
-     * @return the target index value for this source projection.
-     */
-    public int getTargetIndex()
-    {
-        return targetIndex;
-    }
-
-    /**
      * Sets the target index value for this source projection.
-     *
-     * @param value the new target index value for this source projection.
-     * @return {@code true} if the value was changed as a result of this call.
      */
-    public boolean setTargetIndex(int value)
+    public void setTargetIndex(int value)
     {
-        boolean changed = targetIndex != value;
         targetIndex = value;
-
-        return changed;
     }
 
     /**
@@ -285,9 +243,6 @@ public class AdaptiveSourceProjection
             {
                 // context switch
                 RtpState rtpState = getRtpState();
-                if (rtpState == null) {
-                    return null;
-                }
                 logger.debug(() -> "adaptive source projection " +
                     (context == null ? "creating new" : "changing to") +
                     " VP8 context for payload type "
@@ -301,9 +256,6 @@ public class AdaptiveSourceProjection
                 && !(context instanceof GenericAdaptiveSourceProjectionContext))
             {
                 RtpState rtpState = getRtpState();
-                if (rtpState == null) {
-                    return null;
-                }
                 // context switch
                 logger.debug(() -> {
                     boolean hasTemporalLayer = rtpPacket instanceof Vp8Packet &&
@@ -325,12 +277,27 @@ public class AdaptiveSourceProjection
             // no context switch
             return context;
         }
+        else if (payloadTypeObject instanceof Vp9PayloadType)
+        {
+            if (!(context instanceof Vp9AdaptiveSourceProjectionContext))
+            {
+                // context switch
+                RtpState rtpState = getRtpState();
+                logger.debug(() -> "adaptive source projection " +
+                    (context == null ? "creating new" : "changing to") +
+                    " VP9 context for payload type "
+                    + payloadType +
+                    ", source packet ssrc " + rtpPacket.getSsrc());
+                context = new Vp9AdaptiveSourceProjectionContext(
+                    diagnosticContext, payloadTypeObject, rtpState, parentLogger);
+                contextPayloadType = payloadType;
+            }
+
+            return context;
+        }
         else if (context == null || contextPayloadType != payloadType)
         {
             RtpState rtpState = getRtpState();
-            if (rtpState == null) {
-                return null;
-            }
             logger.debug(() -> "adaptive source projection "  +
                 (context == null ? "creating new" : "changing to") +
                 " generic context for payload type " + payloadType);
@@ -347,7 +314,7 @@ public class AdaptiveSourceProjection
     /**
      * Gets the {@link RtpState}.
      */
-    private RtpState getRtpState()
+    private @NotNull RtpState getRtpState()
     {
         if (context == null)
         {
@@ -419,7 +386,6 @@ public class AdaptiveSourceProjection
                 "context",
                 contextCopy == null ? null : contextCopy.getDebugState());
         debugState.put("contextPayloadType", contextPayloadType);
-        debugState.put("idealIndex", idealIndex);
         debugState.put("targetIndex", targetIndex);
 
         return debugState;

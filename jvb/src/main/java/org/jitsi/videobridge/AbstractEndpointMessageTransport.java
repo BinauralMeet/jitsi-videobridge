@@ -26,7 +26,7 @@ import java.io.*;
 
 /**
  * Handles the functionality related to sending and receiving COLIBRI messages
- * for an {@link Endpoint}. An abstract implementation.
+ * for a participant. An abstract implementation.
  *
  * @author Boris Grozev
  */
@@ -76,7 +76,7 @@ public abstract class AbstractEndpointMessageTransport<T extends AbstractEndpoin
         }
         catch (IOException ioe)
         {
-            logger.warn("Invalid message received: " + msg, ioe);
+            logger.warn("Invalid message received (" + ioe.getMessage() + "): " + msg);
             return;
         }
 
