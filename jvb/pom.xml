@@ -586,12 +586,6 @@
     </plugins>
   </build>
   <repositories>
-<!--    <repository>
-      <id>bm-repository</id>
-      <layout>default</layout>
-      <name>Jitsi Maven Repository (BinauralMeet snapshots)</name>
-      <url>https://github.com/BinauralMeet/jitsi-maven-repository/raw/main/snapshots/</url>
-    </repository> -->
     <repository>
       <id>jitsi-maven-repository-releases</id>
       <layout>default</layout>
