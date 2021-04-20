@@ -153,6 +153,7 @@ class BitrateController<T : MediaSourceContainer> @JvmOverloads constructor(
     }
     fun transformRtcp(rtcpSrPacket: RtcpSrPacket?): Boolean = packetHandler.transformRtcp(rtcpSrPacket)
     fun transformRtp(packetInfo: PacketInfo): Boolean = packetHandler.transformRtp(packetInfo)
+    fun getTargetSsrc(packetInfo: PacketInfo): Long = packetHandler.getTargetSsrc(packetInfo)
 
     val debugState: JSONObject
         get() = JSONObject().apply {

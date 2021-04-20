@@ -161,6 +161,28 @@ class BitrateControllerPacketHandler
         return ssrc == adaptiveSourceProjection.getTargetSsrc();
     }
 
+    /**
+     * Return the target Ssrc fomr the packet. usefull for simulacast
+     *
+     * @param packetInfo that packet for which to decide whether to accept
+     * @return the target ssrc if found
+     * ; otherwise, <tt>-1</tt>
+     */
+    long getTargetSsrc(@NotNull PacketInfo packetInfo)
+    {
+        VideoRtpPacket videoRtpPacket = packetInfo.packetAs();
+        long ssrc = videoRtpPacket.getSsrc();
+
+        AdaptiveSourceProjection adaptiveSourceProjection = adaptiveSourceProjectionMap.get(ssrc);
+
+        if (adaptiveSourceProjection == null)
+        {
+		    return -1;
+        }
+
+        return adaptiveSourceProjection.getTargetSsrc();
+    }
+
     boolean transformRtcp(RtcpSrPacket rtcpSrPacket)
     {
         long ssrc = rtcpSrPacket.getSenderSsrc();
