@@ -910,7 +910,7 @@ class Endpoint @JvmOverloads constructor(
         return when (val packet = packetInfo.packet) {
 //            is VideoRtpPacket -> acceptVideo && bitrateController.accept(packetInfo)
             is VideoRtpPacket -> {
-                val ssrc = packet.ssrc
+                val ssrc = bitrateController.getTargetSsrc(packetInfo);
                 return acceptVideo && (perceptibles == null || perceptibleVideoSSRCs.contains(ssrc)) &&
                     bitrateController.accept(packetInfo)
             }
