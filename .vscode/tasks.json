@@ -1,0 +1,13 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "compile",
+            "type": "shell",
+            "command": "JVB_HOME=/c/Home/hase/debian/jitsi-videobridge; mvn compile exec:exec -Dexec.executable=java -Dexec.args=\"-cp %classpath org.jitsi.videobridge.Main -Djava.library.path=$JVB_HOME/lib/native/linux-64 -Djava.util.logging.config.file=$JVB_HOME/lib/logging.properties -Dnet.java.sip.communicator.SC_HOME_DIR_NAME=.jitsi-videobridge \"",
+            "group": "build"
+        },
+    ]
+}
