@@ -42,7 +42,7 @@ import org.jitsi.nlj.transform.node.incoming.VideoParser
 import org.jitsi.nlj.transform.node.incoming.VideoQualityLayerLookup
 import org.jitsi.nlj.transform.packetPath
 import org.jitsi.nlj.transform.pipeline
-import org.jitsi.nlj.util.OrderedJsonObject
+import org.jitsi.utils.OrderedJsonObject
 import org.jitsi.nlj.util.PacketInfoQueue
 import org.jitsi.nlj.util.PacketPredicate
 import org.jitsi.nlj.util.ReadOnlyStreamInformationStore
@@ -145,6 +145,7 @@ class OctoRtpReceiver(
 
     override fun enqueuePacket(p: PacketInfo) {
         if (running.get()) {
+            p.addEvent(PACKET_QUEUE_ENTRY_EVENT)
             incomingPacketQueue.add(p)
         } else {
             ByteBufferPool.returnBuffer(p.packet.buffer)
@@ -152,6 +153,7 @@ class OctoRtpReceiver(
     }
 
     private fun handleIncomingPacket(packetInfo: PacketInfo): Boolean {
+        packetInfo.addEvent(PACKET_QUEUE_EXIT_EVENT)
         processPacket(packetInfo)
         return true
     }
@@ -214,6 +216,9 @@ class OctoRtpReceiver(
     }
 
     companion object {
+        private const val PACKET_QUEUE_ENTRY_EVENT = "Entered Octo RTP receiver incoming queue"
+        private const val PACKET_QUEUE_EXIT_EVENT = "Exited Octo RTP receiver incoming queue"
+
         @JvmField
         val queueErrorCounter = CountingErrorHandler()
     }

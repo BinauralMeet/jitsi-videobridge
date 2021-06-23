@@ -25,13 +25,13 @@ import org.jitsi.utils.event.*;
 import org.jitsi.utils.logging2.*;
 import org.jitsi.videobridge.cc.allocation.*;
 import org.jitsi.videobridge.message.*;
+import org.jitsi.videobridge.util.*;
 import org.jitsi.xmpp.extensions.colibri.*;
 import org.json.simple.*;
 
 import java.io.*;
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.*;
 
 /**
  * Represents an endpoint in a conference (i.e. the entity associated with
@@ -94,6 +94,12 @@ public abstract class AbstractEndpoint
     protected final EventEmitter<EventHandler> eventEmitter = new EventEmitter<>();
 
     /**
+     * The latest {@link VideoType} signaled by the endpoint (defaulting to {@code CAMERA} if nothing has been
+     * signaled).
+     */
+    private VideoType videoType = VideoType.CAMERA;
+
+    /**
      * Initializes a new {@link AbstractEndpoint} instance.
      * @param conference the {@link Conference} which this endpoint is to be a
      * part of.
@@ -106,6 +112,30 @@ public abstract class AbstractEndpoint
         context.put("epId", id);
         logger = parentLogger.createChildLogger(this.getClass().getName(), context);
         this.id = Objects.requireNonNull(id, "id");
+    }
+
+    /**
+     * Return the {@link VideoType} that the endpoint has advertised as available. This reflects the type of stream
+     * even when the stream is suspended (e.g. due to no receivers being subscribed to it).
+     *
+     * In other words, CAMERA or SCREENSHARE means that the endpoint has an available stream, which may be suspended.
+     * NONE means that the endpoint has signaled that it has no available streams.
+     *
+     * Note that when the endpoint has not advertised any video sources, the video type is necessarily {@code NONE}.
+     */
+    @NotNull
+    public VideoType getVideoType()
+    {
+        if (getMediaSource() == null)
+        {
+            return VideoType.NONE;
+        }
+        return videoType;
+    }
+
+    public void setVideoType(VideoType videoType)
+    {
+        this.videoType = videoType;
     }
 
     /**
@@ -132,9 +162,11 @@ public abstract class AbstractEndpoint
     }
 
     /**
-     * Gets the list of media sources that belong to this endpoint.
+     * Gets the description of the video {@link MediaSourceDesc} that this endpoint has advertised, or {@code null} if
+     * it hasn't advertised any video sources.
      */
-    abstract public MediaSourceDesc[] getMediaSources();
+    @Nullable
+    public abstract MediaSourceDesc getMediaSource();
 
     /**
      * Returns the display name of this <tt>Endpoint</tt>.

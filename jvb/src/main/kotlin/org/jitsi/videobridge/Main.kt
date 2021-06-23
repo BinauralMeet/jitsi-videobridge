@@ -31,6 +31,7 @@ import org.jitsi.rest.servletContextHandler
 import org.jitsi.shutdown.ShutdownServiceImpl
 import org.jitsi.stats.media.Utils
 import org.jitsi.utils.logging2.LoggerImpl
+import org.jitsi.utils.queue.PacketQueue
 import org.jitsi.videobridge.health.JvbHealthChecker
 import org.jitsi.videobridge.ice.Harvesters
 import org.jitsi.videobridge.rest.root.Application
@@ -76,13 +77,17 @@ fun main(args: Array<String>) {
     // properties were set.
     JitsiConfig.reloadNewConfig()
 
+    val versionService = JvbVersionService().also {
+        logger.info("Starting jitsi-videobridge version ${it.currentVersion}")
+    }
+
     startIce4j()
 
     XmppStringPrepUtil.setMaxCacheSizes(XmppClientConnectionConfig.jidCacheSize)
+    PacketQueue.setEnableStatisticsDefault(true)
 
     val xmppConnection = XmppConnection().apply { start() }
     val shutdownService = ShutdownServiceImpl()
-    val versionService = JvbVersionService()
     val videobridge = Videobridge(xmppConnection, shutdownService, versionService.currentVersion).apply { start() }
     val healthChecker = JvbHealthChecker().apply { start() }
     val octoRelayService = octoRelayService().get()?.apply { start() }

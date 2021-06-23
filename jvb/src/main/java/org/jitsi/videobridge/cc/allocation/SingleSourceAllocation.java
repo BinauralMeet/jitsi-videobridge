@@ -15,9 +15,7 @@
  */
 package org.jitsi.videobridge.cc.allocation;
 
-import org.jitsi.nlj.MediaSourceDesc;
-import org.jitsi.nlj.RtpLayerDesc;
-import org.jitsi.nlj.util.*;
+import org.jitsi.nlj.*;
 import org.jitsi.utils.logging.*;
 import org.jitsi.videobridge.cc.config.*;
 
@@ -41,20 +39,12 @@ class SingleSourceAllocation
      */
     private static final LayerSnapshot[] EMPTY_RATE_SNAPSHOT_ARRAY = new LayerSnapshot[0];
 
-    /**
-     * The ID of the {@code Endpoint} that this instance pertains to.
-     */
-    private final String endpointId;
+    final MediaSourceContainer endpoint;
 
     /**
      * The constraints to use while allocating bandwidth to this endpoint.
      */
     final VideoConstraints constraints;
-
-    /**
-     * The {@link MediaSourceDesc} that this instance pertains to.
-     */
-    private final MediaSourceDesc source;
 
     /**
      * An array that holds the layers to be considered when allocating bandwidth.
@@ -75,18 +65,17 @@ class SingleSourceAllocation
     int targetIdx = -1;
 
     SingleSourceAllocation(
-            String endpointId,
-            MediaSourceDesc source,
+            MediaSourceContainer endpoint,
             VideoConstraints constraints,
             boolean onStage,
             DiagnosticContext diagnosticContext,
             Clock clock)
     {
-        this.endpointId = endpointId;
+        this.endpoint = endpoint;
         this.constraints = constraints;
-        this.source = source;
         this.onStage = onStage;
 
+        MediaSourceDesc source = endpoint.getMediaSource();
         if (source == null || constraints.getMaxHeight() <= 0)
         {
             preferredIdx = -1;
@@ -162,7 +151,7 @@ class SingleSourceAllocation
         {
             DiagnosticContext.TimeSeriesPoint ratesTimeSeriesPoint
                     = diagnosticContext.makeTimeSeriesPoint("layers_considered")
-                        .addField("remote_endpoint_id", endpointId);
+                        .addField("remote_endpoint_id", endpoint.getId());
             for (LayerSnapshot layerSnapshot : ratesList)
             {
                 ratesTimeSeriesPoint.addField(
@@ -233,6 +222,14 @@ class SingleSourceAllocation
     }
 
     /**
+     * The source is suspended if we've not selected a layer AND the source has active layers.
+     */
+    boolean isSuspended()
+    {
+        return targetIdx == -1 && layers.length > 0 && layers[0].bitrate > 0;
+    }
+
+    /**
      * Gets the target bitrate (in bps) for this endpoint allocation, i.e. the bitrate of the currently chosen layer.
      */
     long getTargetBitrate()
@@ -274,8 +271,7 @@ class SingleSourceAllocation
         LayerSnapshot targetLayer = getTargetLayer();
         LayerSnapshot idealLayer = getIdealLayer();
         return new SingleAllocation(
-                endpointId,
-                source,
+                endpoint,
                 targetLayer == null ? null : targetLayer.layer,
                 idealLayer == null ? null : idealLayer.layer
         );
@@ -283,7 +279,7 @@ class SingleSourceAllocation
 
     @Override
     public String toString() {
-        return "[id=" + endpointId
+        return "[id=" + endpoint.getId()
                 + " constraints=" + constraints
                 + " ratedPreferredIdx=" + preferredIdx
                 + " ratedTargetIdx=" + targetIdx;

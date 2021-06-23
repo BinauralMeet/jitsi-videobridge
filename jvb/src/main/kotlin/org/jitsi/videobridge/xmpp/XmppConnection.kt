@@ -17,7 +17,7 @@
 package org.jitsi.videobridge.xmpp
 
 import org.jitsi.nlj.stats.DelayStats
-import org.jitsi.nlj.util.OrderedJsonObject
+import org.jitsi.utils.OrderedJsonObject
 import org.jitsi.utils.logging2.cdebug
 import org.jitsi.utils.logging2.createLogger
 import org.jitsi.videobridge.xmpp.config.XmppClientConnectionConfig
@@ -162,8 +162,8 @@ class XmppConnection : IQListener {
         logger.cdebug { "RECV: ${iq.toXML()}" }
 
         return when (iq.type) {
-            IQ.Type.get, IQ.Type.set -> handleIqRequest(iq, mucClient).also {
-                logger.cdebug { "SENT: ${it?.toXML() ?: "null"}" }
+            IQ.Type.get, IQ.Type.set -> handleIqRequest(iq, mucClient)?.also {
+                logger.cdebug { "SENT: ${it.toXML()}" }
             }
             else -> null
         }
@@ -183,6 +183,7 @@ class XmppConnection : IQListener {
                 // Colibri IQs are handled async.
                 handler.colibriConferenceIqReceived(
                     ColibriRequest(iq, colibriDelayStats, colibriProcessingDelayStats) { response ->
+                        logger.debug { "SENT: ${response.toXML()}" }
                         mucClient.sendStanza(response.setResponseTo(iq))
                     }
                 )

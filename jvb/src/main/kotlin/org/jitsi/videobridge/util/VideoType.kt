@@ -1,5 +1,5 @@
 /*
- * Copyright @ 2018 - present 8x8, Inc.
+ * Copyright @ 2021-Present 8x8, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.jitsi.videobridge.util
 
-package org.jitsi.videobridge.stats;
-
-import org.jitsi.utils.*;
-import org.jitsi.videobridge.*;
-
-public class PacketTransitStats
-{
-    public static OrderedJsonObject getStatsJson()
-    {
-        OrderedJsonObject stats = new OrderedJsonObject();
-
-        stats.put("e2e_packet_delay", Endpoint.getPacketDelayStats());
-        stats.put(Endpoint.overallAverageBridgeJitter.name, Endpoint.overallAverageBridgeJitter.get());
-
-        return stats;
-    }
+enum class VideoType {
+    CAMERA,
+    DESKTOP,
+    NONE
 }

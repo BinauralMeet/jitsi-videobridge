@@ -25,11 +25,13 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonMappingException
+import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.apache.logging.log4j.util.Strings.isEmpty
 import org.jitsi.utils.ResettableLazy
 import org.jitsi.videobridge.cc.allocation.VideoConstraints
+import org.jitsi.videobridge.util.VideoType
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -60,7 +62,8 @@ import java.util.concurrent.atomic.AtomicLong
     JsonSubTypes.Type(value = SenderVideoConstraintsMessage::class, name = SenderVideoConstraintsMessage.TYPE),
     JsonSubTypes.Type(value = AddReceiverMessage::class, name = AddReceiverMessage.TYPE),
     JsonSubTypes.Type(value = RemoveReceiverMessage::class, name = RemoveReceiverMessage.TYPE),
-    JsonSubTypes.Type(value = ReceiverVideoConstraintsMessage::class, name = ReceiverVideoConstraintsMessage.TYPE)
+    JsonSubTypes.Type(value = ReceiverVideoConstraintsMessage::class, name = ReceiverVideoConstraintsMessage.TYPE),
+    JsonSubTypes.Type(value = VideoTypeMessage::class, name = VideoTypeMessage.TYPE)
 )
 sealed class BridgeChannelMessage(
     // The type is included as colibriClass (as it has to be on the wire) by the annotation above.
@@ -86,7 +89,9 @@ sealed class BridgeChannelMessage(
     protected open fun createJson(): String = mapper.writeValueAsString(this)
 
     companion object {
-        private val mapper = jacksonObjectMapper()
+        private val mapper = jacksonObjectMapper().apply {
+            enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
+        }
         @JvmStatic
         @Throws(JsonProcessingException::class, JsonMappingException::class)
         fun parse(string: String): BridgeChannelMessage {
@@ -124,6 +129,7 @@ open class MessageHandler {
             is AddReceiverMessage -> addReceiver(message)
             is RemoveReceiverMessage -> removeReceiver(message)
             is ReceiverVideoConstraintsMessage -> receiverVideoConstraints(message)
+            is VideoTypeMessage -> videoType(message)
         }
     }
 
@@ -152,6 +158,7 @@ open class MessageHandler {
     open fun addReceiver(message: AddReceiverMessage) = unhandledMessageReturnNull(message)
     open fun removeReceiver(message: RemoveReceiverMessage) = unhandledMessageReturnNull(message)
     open fun receiverVideoConstraints(message: ReceiverVideoConstraintsMessage) = unhandledMessageReturnNull(message)
+    open fun videoType(message: VideoTypeMessage) = unhandledMessageReturnNull(message)
 
     fun getReceivedCounts() = receivedCounts.mapValues { it.value.get() }
 }
@@ -438,5 +445,21 @@ class ReceiverVideoConstraintsMessage(
 ) : BridgeChannelMessage(TYPE) {
     companion object {
         const val TYPE = "ReceiverVideoConstraints"
+    }
+}
+
+/**
+ * A signaling the type of video stream an endpoint has available.
+ */
+class VideoTypeMessage(
+    val videoType: VideoType,
+    /**
+     * The endpoint ID that the message relates to, or null. When null, the ID is inferred from the channel the
+     * message was received on (non-null values are needed only for Octo).
+     */
+    val endpointId: String? = null
+) : BridgeChannelMessage(TYPE) {
+    companion object {
+        const val TYPE = "VideoTypeMessage"
     }
 }
