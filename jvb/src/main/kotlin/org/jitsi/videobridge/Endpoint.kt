@@ -810,6 +810,7 @@ class Endpoint @JvmOverloads constructor(
 
     override fun send(packetInfo: PacketInfo) {
         when (val packet = packetInfo.packet) {
+            /*  hasevr ignore bitrateController. always send packet
             is VideoRtpPacket -> {
                 if (bitrateController.transformRtp(packetInfo)) {
                     // The original packet was transformed in place.
@@ -818,7 +819,7 @@ class Endpoint @JvmOverloads constructor(
                     logger.warn("Dropping a packet which was supposed to be accepted:$packet")
                 }
                 return
-            }
+            }*/
             is RtcpSrPacket -> {
                 // Allow the BC to update the timestamp (in place).
                 bitrateController.transformRtcp(packet)
@@ -908,7 +909,8 @@ class Endpoint @JvmOverloads constructor(
         }
 
         return when (val packet = packetInfo.packet) {
-//            is VideoRtpPacket -> acceptVideo && bitrateController.accept(packetInfo)
+            //  hasevr  When perceiptibles is set, ignore bitrateController
+            //  is VideoRtpPacket -> acceptVideo && bitrateController.accept(packetInfo)
             is VideoRtpPacket -> {
                 val ssrc = packet.ssrc
                 return acceptVideo && (
@@ -916,7 +918,8 @@ class Endpoint @JvmOverloads constructor(
                         perceptibleVideoSSRCs.contains(ssrc)
                     )
             }
-//            is AudioRtpPacket -> acceptAudio
+            //  hasevr  send packets only in perceptibles
+            //  is AudioRtpPacket -> acceptAudio
             is AudioRtpPacket -> {
                 val ssrc = packet.ssrc
                 return acceptAudio && (perceptibles == null || perceptibleAudioSSRCs.contains(ssrc))
