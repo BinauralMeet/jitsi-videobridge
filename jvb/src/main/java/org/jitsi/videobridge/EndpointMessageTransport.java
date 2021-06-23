@@ -483,7 +483,7 @@ public class EndpointMessageTransport
             long ssrcs[][] = message.getPerceptibles();
             endpoint.setPerceptibles(ssrcs);
         }else{
-            getLogger().error("EndpointMessageTransport: perceived() failed to send message " +
+            logger.error("EndpointMessageTransport: perceived() failed to send message " +
                 " because endpoint==null. " + message);
         }
         return null;
