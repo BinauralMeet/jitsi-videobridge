@@ -931,7 +931,8 @@ class Endpoint @JvmOverloads constructor(
         }
 
         return when (val packet = packetInfo.packet) {
-//            is VideoRtpPacket -> acceptVideo && bitrateController.accept(packetInfo)
+            //  hasevr  When perceiptibles is set, ignore bitrateController
+            //  is VideoRtpPacket -> acceptVideo && bitrateController.accept(packetInfo)
             is VideoRtpPacket -> {
                 val ssrc = packet.ssrc
                 return acceptVideo && (
@@ -939,7 +940,8 @@ class Endpoint @JvmOverloads constructor(
                         perceptibleVideoSSRCs.contains(ssrc)
                     )
             }
-//            is AudioRtpPacket -> acceptAudio
+            //  hasevr  send packets only in perceptibles
+            //  is AudioRtpPacket -> acceptAudio
             is AudioRtpPacket -> {
                 val ssrc = packet.ssrc
                 return acceptAudio && (perceptibles == null || perceptibleAudioSSRCs.contains(ssrc))
