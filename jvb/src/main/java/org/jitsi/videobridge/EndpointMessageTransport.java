@@ -487,8 +487,8 @@ public class EndpointMessageTransport
     public BridgeChannelMessage perceived(PercieveMessage message){
         //  logger.info("EndpointMessageTransport: perceived() called:" + message);
         if (endpoint != null){
-            long ssrcs[][] = message.getPerceptibles();
-            endpoint.setPerceptibles(ssrcs);
+            String endpointIds [][] = message.getPerceptibles();
+            endpoint.setPerceptibles(endpointIds);
         }else{
             getLogger().error("EndpointMessageTransport: perceived() failed to send message " +
                 " because endpoint==null. " + message);

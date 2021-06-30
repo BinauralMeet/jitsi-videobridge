@@ -109,9 +109,9 @@ class Endpoint @JvmOverloads constructor(
 ) : AbstractEndpoint(conference, id, parentLogger), PotentialPacketHandler, EncodingsManager.EncodingsUpdateListener {
 
     //  hasevr
-    private var perceptibles: Array<LongArray>? = null
-    private val perceptibleAudioSSRCs = mutableSetOf<Long>()
-    private val perceptibleVideoSSRCs = mutableSetOf<Long>()
+    private var perceptibles: Array< Array<String> >? = null
+    private val audibleEndpoints = mutableSetOf<String>()
+    private val visibleEndpoints = mutableSetOf<String>()
 
     /**
      * The time at which this endpoint was created
@@ -898,15 +898,15 @@ class Endpoint @JvmOverloads constructor(
         bitrateController.lastN = lastN
     }
     //  hasevr
-    fun setPerceptibles(ssrcs: Array<LongArray>) {
-        this.perceptibles = ssrcs
-        this.perceptibleVideoSSRCs.clear()
-        this.perceptibleVideoSSRCs.addAll(ssrcs[0].toList())
-        this.perceptibleAudioSSRCs.clear()
-        this.perceptibleAudioSSRCs.addAll(ssrcs[1].toList())
+    fun setPerceptibles(endpointIds: Array< Array<String> >) {
+        this.perceptibles = endpointIds
+        this.visibleEndpoints.clear()
+        this.visibleEndpoints.addAll(endpointIds[0].toList())
+        this.audibleEndpoints.clear()
+        this.audibleEndpoints.addAll(endpointIds[1].toList())
         logger.info(
             "setPerceptible called on ep:" + this.id +
-                " [" + ssrcs[0].toString() + "," + ssrcs[1].toString() + "]"
+                " [" + endpointIds[0].toString() + "," + endpointIds[1].toString() + "]"
         )
         logger.info("allEndpoints: " + this.getConference().getEndpoints().toString())
     }
@@ -933,16 +933,14 @@ class Endpoint @JvmOverloads constructor(
         return when (val packet = packetInfo.packet) {
 //            is VideoRtpPacket -> acceptVideo && bitrateController.accept(packetInfo)
             is VideoRtpPacket -> {
-                val ssrc = packet.ssrc
                 return acceptVideo && (
                     (perceptibles == null && bitrateController.accept(packetInfo)) ||
-                        perceptibleVideoSSRCs.contains(ssrc)
+                        visibleEndpoints.contains(packetInfo.endpointId)
                     )
             }
 //            is AudioRtpPacket -> acceptAudio
             is AudioRtpPacket -> {
-                val ssrc = packet.ssrc
-                return acceptAudio && (perceptibles == null || perceptibleAudioSSRCs.contains(ssrc))
+                return acceptAudio && (perceptibles == null || audibleEndpoints.contains(packetInfo.endpointId))
             }
             is RtcpSrPacket -> {
                 // TODO: For SRs we're only interested in the ntp/rtp timestamp
