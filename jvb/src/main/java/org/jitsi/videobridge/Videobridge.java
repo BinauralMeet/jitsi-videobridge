@@ -125,7 +125,7 @@ public class Videobridge
 
     @NotNull private final ShutdownServiceImpl shutdownService;
 
-    private final EventEmitter<EventHandler> eventEmitter = new EventEmitter<>();
+    private final EventEmitter<EventHandler> eventEmitter = new SyncEventEmitter<>();
 
     static
     {
@@ -241,7 +241,7 @@ public class Videobridge
 
         logger.info(() -> "create_conf, id=" + conference.getID() + " gid=" + conference.getGid());
 
-        eventEmitter.fireEventSync(handler ->
+        eventEmitter.fireEvent(handler ->
         {
             handler.conferenceCreated(conference);
             return Unit.INSTANCE;
@@ -283,7 +283,7 @@ public class Videobridge
             {
                 conferencesById.remove(id);
                 conference.expire();
-                eventEmitter.fireEventSync(handler ->
+                eventEmitter.fireEvent(handler ->
                 {
                     handler.conferenceExpired(conference);
                     return Unit.INSTANCE;
@@ -746,6 +746,13 @@ public class Videobridge
      */
     public static class Statistics
     {
+        /**
+         * The total number of times our AIMDs have expired the incoming bitrate
+         * (and which would otherwise result in video suspension).
+         * (see {@link AimdRateControl#incomingBitrateExpirations}).
+         */
+        public AtomicInteger incomingBitrateExpirations = new AtomicInteger(0);
+
         /**
          * The cumulative/total number of conferences that had all of their
          * channels failed because there was no transport activity (which
