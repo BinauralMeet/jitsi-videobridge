@@ -92,6 +92,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Supplier
+import java.util.Arrays
 
 /**
  * Models a local endpoint (participant) in a [Conference]
@@ -884,9 +885,9 @@ class Endpoint @JvmOverloads constructor(
         this.audibleEndpoints.addAll(endpointIds[1].toList())
         logger.info(
             "setPerceptible called on ep:" + this.id +
-                " [" + endpointIds[0].toString() + "," + endpointIds[1].toString() + "]"
+                " [" + Arrays.toString(endpointIds[0]) + "," + Arrays.toString(endpointIds[1]) + "]"
         )
-        logger.info("allEndpoints: " + this.getConference().getEndpoints().toString())
+        //  logger.info("allEndpoints: " + this.getConference().getEndpoints().toString())
     }
 
     fun getLastN(): Int = bitrateController.lastN
