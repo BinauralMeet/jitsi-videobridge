@@ -92,7 +92,6 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Supplier
-import java.util.Arrays
 
 /**
  * Models a local endpoint (participant) in a [Conference]
@@ -833,7 +832,7 @@ class Endpoint @JvmOverloads constructor(
 
     override fun send(packetInfo: PacketInfo) {
         when (val packet = packetInfo.packet) {
-            /* hasevr Ignore bitrateController and always send video packet
+            //  /* hasevr Ignore bitrateController and always send video packet
             is VideoRtpPacket -> {
                 if (bitrateController.transformRtp(packetInfo)) {
                     // The original packet was transformed in place.
@@ -842,7 +841,7 @@ class Endpoint @JvmOverloads constructor(
                     logger.warn("Dropping a packet which was supposed to be accepted:$packet")
                 }
                 return
-            }   */
+            } //  */
             is RtcpSrPacket -> {
                 // Allow the BC to update the timestamp (in place).
                 bitrateController.transformRtcp(packet)
@@ -905,10 +904,11 @@ class Endpoint @JvmOverloads constructor(
         this.visibleEndpoints.addAll(endpointIds[0].toList())
         this.audibleEndpoints.clear()
         this.audibleEndpoints.addAll(endpointIds[1].toList())
+        /*
         logger.info(
             "setPerceptible called on ep:" + this.id +
                 " [" + Arrays.toString(endpointIds[0]) + "," + Arrays.toString(endpointIds[1]) + "]"
-        )
+        ) //  */
         //  logger.info("allEndpoints: " + this.getConference().getEndpoints().toString())
     }
 
@@ -932,14 +932,13 @@ class Endpoint @JvmOverloads constructor(
         }
 
         return when (val packet = packetInfo.packet) {
-//            is VideoRtpPacket -> acceptVideo && bitrateController.accept(packetInfo)
+            //  hasevr  use bitrateController and visibleEndpoints
             is VideoRtpPacket -> {
-                return acceptVideo && (
-                    (perceptibles == null && bitrateController.accept(packetInfo)) ||
-                        visibleEndpoints.contains(packetInfo.endpointId)
-                    )
+                return acceptVideo && bitrateController.accept(packetInfo) &&
+                    (perceptibles == null || visibleEndpoints.contains(packetInfo.endpointId))
             }
-//            is AudioRtpPacket -> acceptAudio
+            //  hasevr  send packets only in audibleEndpoints
+            //  is AudioRtpPacket -> acceptAudio
             is AudioRtpPacket -> {
                 return acceptAudio && (perceptibles == null || audibleEndpoints.contains(packetInfo.endpointId))
             }
